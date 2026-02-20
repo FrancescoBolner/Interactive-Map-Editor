@@ -2,7 +2,7 @@
                          🗺️  INTERACTIVE MAP EDITOR
 ════════════════════════════════════════════════════════════════════════════════
 
-Version: 1.4 | Author: Francesco Bolner | Updated: January 2026
+Version: 1.5 | Author: Francesco Bolner | Updated: February 2026
 
 A powerful HTML5 Canvas-based map editor for creating hierarchical, zoomable
 maps with interactive markers and spatial audio. Perfect for RPG campaigns,
@@ -12,9 +12,10 @@ WHAT MAKES THIS UNIQUE:
   • Infinite zoom with scale-dependent layer visibility
   • Hierarchical parent-child image relationships
   • Seven marker types with filtering (including enemy/boss tracking)
-  • Rectangular audio zones with automatic priority handling
+  • Rectangular audio zones with per-zone adjustable volume
   • Built-in asset gallery with folder organization
   • Auto-save support (Chrome/Edge) or manual export/import
+  • Full undo/redo system with keyboard shortcuts
   • Pure JavaScript - no dependencies, no build process
 
 
@@ -74,7 +75,7 @@ OPTION C: Direct File Open + Upload
 ─────────────────────────────────────
   1. Open index.html directly in any browser (file://)
   2. The app will start with an empty map (JSON loading fails)
-  3. Click "Edit Mode" → scroll to "Data Management" → "Upload JSON"
+  3. Click the Edit Mode button → click 💾 Data Manage tool → "Upload JSON"
   4. Select your existing map-data.json file to load it
   
   This works in any browser without security workarounds, but requires
@@ -82,11 +83,11 @@ OPTION C: Direct File Open + Upload
 
 FIRST STEPS
 ───────────
-  1. Click "Edit Mode" button (top-left)
-  2. Switch to Image tab → Add your first map layer
-  3. Switch to Mark tab → Add interactive markers
-  4. Click "💾 Auto" button → Select save location (Chrome/Edge only)
-  5. Toggle Edit Mode off to test navigation
+  1. Click the › button (top-left) to open Edit Mode
+  2. Click 🖼️ Image tool in the left panel → Add your first map layer
+  3. Click 📍 Mark tool in the left panel → Add interactive markers
+  4. Click 💾 in the top bar → Select save location (Chrome/Edge only)
+  5. Click ‹ to exit Edit Mode and test navigation
 
 Your map auto-loads from data/map-data.json on startup if it exists.
 
@@ -195,55 +196,117 @@ VIEW CONTROLS (Top-Right)
 
   x: Y: Z:  Debug Info (position and zoom scale)
 
+KEYBOARD SHORTCUTS
+──────────────────
+  E              Toggle Edit Mode on/off
+  N              Cycle mark display mode (land → enemy → all → none)
+  M              Toggle sound on/off
+  + / =          Zoom in
+  - / _          Zoom out
+  Arrow keys     Pan map
+  Ctrl+Z         Undo last action
+  Ctrl+Y         Redo last undone action
+  Ctrl+S         Download/save map data
+  Esc            Close gallery or exit Edit Mode
+
 ════════════════════════════════════════════════════════════════════════════════
 4. EDIT MODE OVERVIEW
 ════════════════════════════════════════════════════════════════════════════════
 
 ACTIVATION
 ──────────
-Click "Edit Mode" button (top-left) → Sidebar slides in from left
+Click the thin › button (top-left) → Three panels slide in simultaneously
 
 INTERFACE LAYOUT
 ────────────────
-  Top Buttons:
-    • 💾 Auto - Enable auto-save (Chrome/Edge only)
-    • 🪲 - Bug report email link
+  The Edit Mode UI consists of three separate panels:
 
-  Four Mode Tabs:
-    • 🖼️ Image - Add/edit hierarchical map layers
-    • 📍 Mark - Add/edit interactive markers
-    • 🔊 Sound - Add/edit audio zones
-    • 🗂️ Gallery - Manage asset library
+  › / ‹ Toggle Button (top-left edge):
+    • A button always visible at the screen edge
+    • › — Edit Mode off (click to open)
+    • ‹ — Edit Mode on (click to close)
+    • Shifts right automatically when panels open to stay accessible
 
-  Each tab contains:
-    1. Info text explaining the mode
-    2. Form for adding/editing items
-    3. Management list (search, edit, delete, reorder)
+  Left Icon Strip (slides in from left):
+    • Vertical panel with one button per tool
+    • 🤚 Drag    — Navigation only, sidebar hidden
+    • 🖼️ Image   — Add/edit map layers
+    • 📍 Mark    — Add/edit markers
+    • 🔊 Sound   — Add/edit audio zones
+    • ───────
+    • 🗂️ Gallery  — Open gallery manager
+    • 💾 Data     — Download/upload JSON
+    • Hover over any icon to see its label
+    • Active tool highlighted with orange border
 
-  Bottom Section:
-    • Data Management (Download/Upload JSON)
+  Top Bar (slides down from top-center):
+    • Map Name: editable inline (shown in orange, updates browser title)
+    • Selection Filters: 🖼️ 📍 🔊 — toggle which element types
+                         can be selected by clicking the canvas
+    • Scale Range: Min – Max appear scale for canvas selection
+    • ↶ / ↷: Undo / Redo buttons (up to 100 steps)
+    • 💾: Auto-save toggle
+    • 🪲: Bug report email link
+
+  Sidebar (slides in when a tool is selected):
+    • Opens next to the left icon strip when clicking Image/Mark/Sound
+    • Contains the form and management list for the active tool
+    • Closes when switching to Drag mode or clicking empty canvas
+
+SELECTION FILTERS vs. VISIBILITY
+──────────────────────────────────
+  These are two separate systems:
+
+  Top bar filters (🖼️ 📍 🔊 and scale range):
+    → Control which element types can be SELECTED by clicking the canvas
+    → Affect only Edit Mode canvas interaction
+    → Do not hide elements from view
+
+  Top-right buttons (📍 mode and 🔊 toggle):
+    → Control what is VISIBLE during playback/navigation
+    → Work in both Edit Mode and View Mode
+
+CANVAS CLICK (Unified Selection)
+─────────────────────────────────
+In Edit Mode, clicking the canvas selects and loads the nearest element
+into the appropriate form. No need to pre-select the matching tool.
+
+  Priority (highest to lowest): Mark → Sound → Image
+
+  • The app checks each type if its filter is enabled (top bar)
+  • The scale range filter restricts selection to elements whose
+    appear scale falls within [min, max]
+  • On match: auto-switches to the correct tool, opens the sidebar,
+    and loads the element's data into the form
+  • Clicking empty space or an unselectable element: switches to
+    Drag mode and closes the sidebar
+
+  Example: with all filters on, clicking near a city mark while an
+  image is behind it → loads the mark (marks have highest priority)
 
 WORKFLOW
 ────────
-  Add:      Fill form → Click "Add [Type]" button
-  Edit:     Click item in list OR click element on canvas → Modify → "Update"
+  Add:      Select tool → Fill form → Click "Add [Type]" button
+  Edit:     Click element on canvas (auto-switches) OR click Edit in list
   Delete:   Click trash icon in management list
   Reorder:  Drag items by ⋮⋮ handle
   Search:   Type in search box to filter lists
 
-CLICK-TO-EDIT
-─────────────
-In Edit Mode, clicking canvas elements loads them into the form:
+UNDO / REDO
+───────────
+  ↶ / ↷ buttons in top bar, or Ctrl+Z / Ctrl+Y
   
-  • Images: Click anywhere on the image
-  • Marks: Click within 15px of marker (screen space)
-  • Sounds: Click inside the zone rectangle
-
-Note: Select the matching tab first (e.g., Image tab to edit images).
+  • Up to 100 steps (oldest discarded when limit reached)
+  • Tracks: all image/mark/sound/gallery create, update, delete,
+    reorder operations, and map name changes
+  • Redo stack cleared when a new action is recorded
+  • History cleared on data upload or fresh load
 
 SPECIAL FEATURES
 ────────────────
-  • Real-time preview: See changes as you edit
+  • Real-time preview: See changes as you edit (before submitting)
+  • Unsaved indicator: Yellow dot appears near 💾 when there are
+    changes not yet written to disk
   • Form validation: Required fields marked with *
   • Success messages: Confirm operations (auto-hide after 3 seconds)
   • Pick buttons: Click canvas to auto-fill coordinates
@@ -314,8 +377,8 @@ ADDING AN IMAGE
     • Only visible when parent is visible
     • Inherits parent's zoom constraints
   
-  ⚠️  WARNING: Avoid circular references (A→B→C→A)
-  ⚠️  WARNING: Don't select self as parent
+  ⚠️  WARNING: Not allowed circular references (A→B→C→A)
+  ⚠️  WARNING: Not allowed self as parent
 
 OPERATIONS
 ──────────
@@ -330,6 +393,25 @@ Edit:
   → Form populates with data
   → Button changes to "Update Image"
   → Modify fields → "Update Image" → Saves changes
+
+Canvas Drag / Resize (while image is loaded in form):
+  An orange dashed border and 4 corner handles appear on the selected image.
+  
+  Move:   Click and drag the image body on canvas
+          → X, Y fields update live as you drag
+  
+  Resize: Click and drag a corner handle
+          → Scales uniformly (aspect ratio preserved)
+          → Size field updates live as you drag
+  
+  Requirements:
+    • Image must be currently loaded in the form (after clicking it or Edit)
+    • 🖼️ selection filter must be enabled in the top bar
+    • Ctrl key must NOT be held (Ctrl = pan the map)
+    • Marks and sounds take higher priority — if one is under the cursor,
+      the image drag won't start
+  
+  Note: Changes are live on canvas but only saved when clicking "Update Image"
 
 Delete:
   Click trash icon in list
@@ -385,8 +467,7 @@ MARK TYPES: NODE VS GENERAL
 ────────────────────────────
 
 Node Marks (attached to images):
-  • Position relative to parent image center
-  • Stored in: image.marks[] array
+  • Stored as properties on the image node (mark, markType)
   • Visibility: Inherits parent's visibility rules
   • Use case: Room features, city details
 
@@ -399,34 +480,37 @@ General Marks (standalone):
 ADDING A MARK
 ─────────────
 
-[Type] (Required)
-  Select mark icon:
-  dot, city, dungeon, fight, treasure, landmark, enemy
+[Mark Type] (Required)
+  Attachment mode:
+  • Node Mark: Attached to a specific image, stored with that image
+  • General Mark: Standalone at world coordinates (or relative to parent)
 
-[Name] (Required)
+[Select Node] (Required for Node marks)
+  The image this mark is attached to
+  • Stored as properties on the image node (mark, markType)
+  • Position is the image's center (no manual X/Y)
+
+[Position X, Y] (Required for General marks)
+  Marker world coordinates
+  • Pick button: Click canvas to auto-fill
+
+[Mark Name] (Required for General marks)
   Title shown in tooltip (bold, first line)
-  If it's a node mark takes the image's name
   Example: "Dragon's Lair", "Ancient Temple"
+  Node marks take the image's own name
+
+[Parent] (Optional, General marks only)
+  Attach general mark to an image for conditional visibility
+  • "None" = always visible
+  • Select image = only visible when parent is visible
+
+[Mark Style] (Optional)
+  Icon type: dot (default), city, dungeon, fight, treasure, landmark, enemy
 
 [Description] (Optional)
   Details shown in tooltip (below name)
   Supports multiline (line breaks preserved)
-  Plain text only (no HTML/Markdown)
-
-[Position X, Y] (Required)
-  Marker coordinates
-  
-  • Pick button: Click canvas to auto-fill
-  • For general marks: World coordinates
-  • For node marks: Offset from parent image center (automatic)
-
-[Parent] (Optional)
-  Attach mark to specific image
-  
-  • "General" = always visible
-  • Select image = only visible when parent is visible
-  
-  Note: Changing parent type converts coordinates automatically
+  Supports basic HTML (rendered in tooltip via innerHTML)
 
 MARK VISUALIZER
 ───────────────
@@ -462,6 +546,18 @@ Edit:
   → Button becomes "Update Mark"
   → Modify → "Update Mark"
   → Handles parent type changes (converts coordinates)
+
+Canvas Drag (while General mark is loaded in form):
+  Move:   Click and drag the mark icon on canvas to reposition it
+          → X, Y fields update live as you drag
+  
+  Requirements:
+    • Only works for General marks (Node marks have no independent position)
+    • Mark must be currently loaded in the form
+    • 📍 selection filter must be enabled in the top bar
+    • Ctrl key must NOT be held (Ctrl = pan the map)
+  
+  Note: Changes are live on canvas but only saved when clicking "Update Mark"
 
 Delete:
   Click trash icon
@@ -504,7 +600,7 @@ Playback triggers when ALL conditions met:
   5. User has interacted with page (browser autoplay policy)
 
 Playback characteristics:
-  • Volume: Fixed 30% (not adjustable - edit audio file to change volume)
+  • Volume: Per-zone adjustable, 0–100% slider (default: 100%)
   • Loop: Continuous while in zone
   • Transitions: Instant start/stop (no fade)
   • Priority: Higher min scale sound plays (if zones overlap)
@@ -562,6 +658,20 @@ ADDING A SOUND
   • Empty = no limit (plays at all high zoom levels)
   • Use to stop sound when zooming too far in
 
+[Volume] (Optional)
+  Playback volume for this zone
+  
+  • Slider: 0–100% (default: 100%)
+
+[Parent Image] (Optional)
+  Links this sound zone to a parent image so it transforms automatically
+  when the parent is updated with "Update Children" checked.
+  
+  • "None" = independent (default)
+  • Zone coordinates and scale values are adjusted proportionally
+  • Scale values rounded to 1 decimal after adjustment
+  • Works for sounds parented to any descendant in the subtree
+
 PRIORITY SYSTEM
 ───────────────
 When multiple sound zones overlap, priority determined by min scale:
@@ -593,6 +703,25 @@ Edit:
   → Button becomes "Update Sound"
   → Zone highlighted with red outline
   → Modify → "Update Sound"
+
+Canvas Drag / Resize (while sound is loaded in form):
+  4 corner handles (circles) appear on the corners of the selected zone.
+  
+  Move:   Click and drag inside the zone body
+          → All four corner fields (x1, y1, x2, y2) update live
+  
+  Resize: Click and drag a corner handle
+          → Each corner controls its own x and y pair independently
+          → Corner fields update live as you drag
+  
+  Requirements:
+    • Sound must be currently loaded in the form
+    • 🔊 selection filter must be enabled in the top bar
+    • Ctrl key must NOT be held (Ctrl = pan the map)
+    • Marks take higher priority — if a mark is under the cursor,
+      the sound drag won't start
+  
+  Note: Changes are live on canvas but only saved when clicking "Update Sound"
 
 Delete:
   Click trash icon → Confirmation dialog
@@ -683,7 +812,7 @@ Create Folder:
 Rename Item:
   Double-click item name → Edit inline → Press Enter or click away
   
-    ⚠️  WARNING: no renaming folders.
+    ⚠️  WARNING: No renaming folders.
 
 Move Item:
   Drag file item onto folder or breadcrumb segment
@@ -783,10 +912,11 @@ AUTO-SAVE (Chrome/Edge/Opera only)
 Uses File System Access API to save directly to your file system.
 
 Setup (first time):
-  1. Click "💾 Auto" button in Edit Mode
-  2. Browser shows file picker dialog
-  3. Select existing map-data.json OR create new file
-  4. Button turns green (auto-save active)
+  1. Open Edit Mode (› button)
+  2. Click "💾" button in the top bar
+  3. Browser shows file picker dialog
+  4. Select existing map-data.json OR create new file
+  5. Button turns green (auto-save active)
 
 Subsequent behavior:
   • Every edit triggers automatic save
@@ -838,6 +968,7 @@ Use cases:
 
 Format:
   {
+    "mapName": "...",       // Optional map name
     "config": [...],        // Hierarchical images
     "generalMarks": [...],  // Standalone marks
     "sounds": [...],        // Audio zones
@@ -915,45 +1046,37 @@ JSON STRUCTURE
 ──────────────
 
 {
+  "mapName": "My Campaign",             // Optional, sets browser title
+
   "config": [
     {
       "name": "World Map",
       "src": "img/world.png",
       "x": 0,
       "y": 0,
-      "width": 2000,
-      "height": 1200,
-      "minScale": 0,
-      "maxScale": 5,                    // Optional
+      "size": 0.5,                     // Display scale multiplier
+      "appearScale": 0,                 // Min zoom for visibility
       "children": [                     // Optional, recursive structure
         {
           "name": "Kingdom",
           "src": "img/kingdom.png",
-          "x": 100,                     // Offset from parent center
+          "x": 100,                     // Offset from center
           "y": -50,
-          "width": 800,
-          "height": 600,
-          "minScale": 5,
+          "size": 0.3,
+          "appearScale": 5,
           "children": [ ... ]
         }
       ],
-      "marks": [                        // Optional, node marks
-        {
-          "type": "city",
-          "name": "Capital",
-          "desc": "The king's seat",
-          "x": 0,                       // Offset from image center
-          "y": 0
-        }
-      ]
+      "mark": "The king's seat",        // Optional, node mark description
+      "markType": "city"                // Optional, node mark icon type
     }
   ],
 
   "generalMarks": [
     {
-      "type": "landmark",               // dot/city/dungeon/fight/treasure/
+      "markType": "landmark",            // dot/city/dungeon/fight/treasure/
       "name": "Ancient Ruins",          //   landmark/enemy
-      "desc": "Long forgotten...",
+      "mark": "Long forgotten...",      // Description text
       "x": 500,                         // World coordinates
       "y": -300,
       "parentPath": "0,1"               // Optional, link to image parent
@@ -969,7 +1092,9 @@ JSON STRUCTURE
       "x2": 1000,
       "y2": 500,
       "minScale": 0,
-      "maxScale": 10                    // Optional
+      "maxScale": 10,                   // Optional
+      "volume": 80,                     // Optional, 0-100, default 100
+      "parentPath": "0,1"               // Optional, link to image parent
     }
   ],
 
@@ -1009,7 +1134,7 @@ AUDIO FORMATS
 
 Recommended: MP3 (universal browser support)
 Supported: OGG, WAV, M4A (browser-dependent)
-Volume: Fixed 30% (modify audio file volume if you want different levels)
+Volume: Adjustable per zone via slider (0-100%, stored in JSON)
 
 ════════════════════════════════════════════════════════════════════════════════
 11. TIPS & BEST PRACTICES
@@ -1232,7 +1357,7 @@ Causes & Solutions:
     → Check browser console for errors
   
   ✗ Volume too low
-    → Fixed at 30%, check system volume
+    → Adjust per-zone volume slider (0-100%), check system volume
     → Check browser isn't muted
 
 AUTO-SAVE NOT WORKING
@@ -1265,22 +1390,25 @@ Symptom: Clicking canvas doesn't load item into form
 
 Causes & Solutions:
   ✗ Not in Edit Mode
-    → Click "Edit Mode" button first
+    → Click the › button first
   
-  ✗ Wrong mode tab
-    → Click-to-edit only works in corresponding mode
-    → Image clicks → Image tab
-    → Mark clicks → Mark tab
-    → Sound clicks → Sound tab
+  ✗ Selection filter disabled
+    → Check the top bar filters (🖼️ 📍 🔊)
+    → The filter for that element type must be enabled
+  
+  ✗ Scale range mismatch
+    → Check the Scale min–max inputs in the top bar
+    → The element's appear scale must fall in that range
+    → Set range to 0–∞ to select everything
   
   ✗ Overlapping elements
-    → Multiple items at same location
-    → Priority: Marks → Sounds → Images
-    → Use management list Edit button instead
+    → Priority: Marks (highest) → Sounds → Images (lowest)
+    → Disable the unwanted filter type in the top bar
+    → Or use the management list Edit button instead
   
   ✗ Element not visible
-    → Item may be outside scale range
-    → Zoom to make it visible first
+    → Item may be outside its zoom range
+    → Zoom to the correct level first
 
 GALLERY ISSUES
 ──────────────
@@ -1400,7 +1528,7 @@ APIs used:
   • Canvas 2D Context (drawing)
   • File System Access API (auto-save, Chrome/Edge only)
   • FileReader API (base64 conversion)
-  • Web Audio API (sound playback)
+  • Web Audio (HTML Audio Element for sound playback)
   • Touch Events API (mobile support)
   • Fetch API (loading JSON)
 
@@ -1408,7 +1536,7 @@ No external dependencies:
   • No jQuery
   • No React/Vue/Angular
   • No build process (Webpack/Vite)
-  • Single HTML file (6000+ lines)
+  • Single HTML file (10000+ lines)
 
 ARCHITECTURE
 ────────────
@@ -1423,7 +1551,8 @@ Rendering:
   • Canvas cleared and redrawn each frame
   • No dirty region optimization
   • Order: Images → Sounds (zones) → Marks
-  • 60 FPS target (requestAnimationFrame)
+  • Event-driven rendering (triggered by user interaction)
+  • No requestAnimationFrame loop
 
 Data flow:
   Form submission → Validate → Update arrays → Auto-save → Render
@@ -1445,7 +1574,7 @@ Canvas rendering:
 Images:
   • No rotation support (axis-aligned only)
   • No skew/perspective transforms
-  • Aspect ratio not auto-preserved
+  • Aspect ratio preserved automatically (single size multiplier)
   • CORS restrictions on external URLs
 
 Marks:
@@ -1458,7 +1587,6 @@ Sounds:
   • Rectangles only (no circles/polygons)
   • No rotation (axis-aligned)
   • One sound at a time (no layering)
-  • Fixed 30% volume (not adjustable)
   • No fade in/out
 
 Gallery:
@@ -1477,7 +1605,6 @@ Auto-save:
 UI:
   • English only (no i18n)
   • Dark theme only
-  • No keyboard shortcuts
   • Minimal accessibility (screen readers)
   • Not mobile-optimized
 
@@ -1485,7 +1612,6 @@ Data:
   • Single JSON file (no database)
   • No data compression
   • No incremental loading (parses entire JSON)
-  • No undo/redo
   • No collaborative editing
 
 PERFORMANCE CHARACTERISTICS
@@ -1568,7 +1694,7 @@ Template/
 │   ├── landmark.svg
 │   ├── enemy.svg
 │   └── icon.png             [Website icons]
-├── index.html               [6000+ lines, all-in-one application]
+├── index.html               [10000+ lines, all-in-one application]
 ├── launcher.bat             [Windows quick-start script]
 └── README.txt               [This file]
 
@@ -1594,6 +1720,17 @@ External files alternative:
 ════════════════════════════════════════════════════════════════════════════════
 14. VERSION HISTORY
 ════════════════════════════════════════════════════════════════════════════════
+
+  v1.5 (February 2026)
+  ────────────────────
+  • New Edit Mode UI: left icon strip + center top bar replace old sidebar header
+  • Unified canvas selection with priority (Mark > Sound > Image) and auto-switch
+  • Selection filters and scale range in top bar (separate from visibility)
+  • Full undo/redo system (up to 100 steps, Ctrl+Z/Y, ↶/↷ buttons)
+  • Per-zone adjustable volume for sounds (0-100% slider, default 100%)
+  • Editable map name saved in JSON, synced to browser title
+  • Keyboard shortcuts: E, N, M, +/-, arrows, Ctrl+Z/Y/S, Esc
+  • Unsaved-changes dot indicator on auto-save button
 
   v1.4 (January 2026)
   ───────────────────
@@ -1742,7 +1879,7 @@ The only limit is your imagination.
 
 ════════════════════════════════════════════════════════════════════════════════
 
-Version: 1.4
-Last Updated: January 15, 2026
+Version: 1.5
+Last Updated: February 19, 2026
 
 ════════════════════════════════════════════════════════════════════════════════
