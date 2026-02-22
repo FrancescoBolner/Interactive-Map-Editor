@@ -2843,6 +2843,7 @@
         // data: { path: string, parentPath: string }
         // To undo a create, we delete the node at the path
         Utils.deleteNodeByPath(data.path);
+        Utils.adjustParentPathsAfterDelete(data.path);
         this._reloadAllImages();
         MarkSystem.rebuildMarks();
         CanvasManager.render();
@@ -2941,6 +2942,9 @@
         } else {
           AppState.config.splice(data.index, 0, data.node);
         }
+
+        // Shift existing parentPaths up to make room for the restored node
+        Utils.adjustParentPathsAfterInsert(data.path);
 
         // Restore general marks in ascending index order
         if (data.affectedGeneralMarks?.length) {
@@ -3114,6 +3118,7 @@
         // Reverse the reorder: move from newIndex back to oldIndex
         const [removed] = parentArray.splice(data.newIndex, 1);
         parentArray.splice(data.oldIndex, 0, removed);
+        Utils.adjustParentPathsAfterReorder(data.parentPath, data.newIndex, data.oldIndex);
         
         MarkSystem.rebuildMarks();
         CanvasManager.render();
@@ -3333,6 +3338,7 @@
         });
 
         Utils.deleteNodeByPath(data.path);
+        Utils.adjustParentPathsAfterDelete(data.path);
         this._reloadAllImages();
         MarkSystem.rebuildMarks();
         CanvasManager.render();
@@ -3478,6 +3484,7 @@
         // Redo: move from oldIndex to newIndex (opposite of undo)
         const [removed] = parentArray.splice(data.oldIndex, 1);
         parentArray.splice(data.newIndex, 0, removed);
+        Utils.adjustParentPathsAfterReorder(data.parentPath, data.oldIndex, data.newIndex);
         
         MarkSystem.rebuildMarks();
         CanvasManager.render();
@@ -3657,6 +3664,93 @@
           }
         }
         return null;
+      },
+
+      /*
+       * Adjust parentPath references in generalMarks and sounds after a node
+       * is removed from the config tree. Shifts sibling indices above the
+       * deleted index down by 1.
+       * @param {string} deletedPath - Full path of the deleted node (e.g., "0,1")
+       */
+      adjustParentPathsAfterDelete(deletedPath) {
+        const indices = deletedPath.split(',').map(Number);
+        const deletedIndex = indices[indices.length - 1];
+        const parentPrefix = indices.length > 1 ? indices.slice(0, -1).join(',') + ',' : '';
+
+        function adjust(pp) {
+          if (pp == null) return pp;
+          const rest = parentPrefix === '' ? pp : (pp.startsWith(parentPrefix) ? pp.substring(parentPrefix.length) : null);
+          if (rest === null) return pp;
+          const parts = rest.split(',');
+          const idx = parseInt(parts[0]);
+          if (isNaN(idx) || idx <= deletedIndex) return pp;
+          parts[0] = String(idx - 1);
+          return parentPrefix + parts.join(',');
+        }
+
+        AppState.generalMarks.forEach(m => { if (m.parentPath != null) m.parentPath = adjust(m.parentPath); });
+        AppState.sounds.forEach(s => { if (s.parentPath != null) s.parentPath = adjust(s.parentPath); });
+      },
+
+      /*
+       * Adjust parentPath references in generalMarks and sounds after a node
+       * is inserted into the config tree. Shifts sibling indices at or above
+       * the inserted index up by 1.
+       * @param {string} insertedPath - Full path of the inserted node (e.g., "0,1")
+       */
+      adjustParentPathsAfterInsert(insertedPath) {
+        const indices = insertedPath.split(',').map(Number);
+        const insertedIndex = indices[indices.length - 1];
+        const parentPrefix = indices.length > 1 ? indices.slice(0, -1).join(',') + ',' : '';
+
+        function adjust(pp) {
+          if (pp == null) return pp;
+          const rest = parentPrefix === '' ? pp : (pp.startsWith(parentPrefix) ? pp.substring(parentPrefix.length) : null);
+          if (rest === null) return pp;
+          const parts = rest.split(',');
+          const idx = parseInt(parts[0]);
+          if (isNaN(idx) || idx < insertedIndex) return pp;
+          parts[0] = String(idx + 1);
+          return parentPrefix + parts.join(',');
+        }
+
+        AppState.generalMarks.forEach(m => { if (m.parentPath != null) m.parentPath = adjust(m.parentPath); });
+        AppState.sounds.forEach(s => { if (s.parentPath != null) s.parentPath = adjust(s.parentPath); });
+      },
+
+      /*
+       * Adjust parentPath references in generalMarks and sounds after images
+       * are reordered within the same parent.
+       * @param {string} parentPath - Parent's path ("" for root, "0" for children of node 0, etc.)
+       * @param {number} oldIndex - Original index of the moved item
+       * @param {number} newIndex - New index of the moved item
+       */
+      adjustParentPathsAfterReorder(parentPath, oldIndex, newIndex) {
+        if (oldIndex === newIndex) return;
+        const parentPrefix = parentPath === '' ? '' : parentPath + ',';
+
+        function adjust(pp) {
+          if (pp == null) return pp;
+          const rest = parentPrefix === '' ? pp : (pp.startsWith(parentPrefix) ? pp.substring(parentPrefix.length) : null);
+          if (rest === null) return pp;
+          const parts = rest.split(',');
+          const idx = parseInt(parts[0]);
+          if (isNaN(idx)) return pp;
+
+          if (idx === oldIndex) {
+            parts[0] = String(newIndex);
+          } else if (oldIndex < newIndex && idx > oldIndex && idx <= newIndex) {
+            parts[0] = String(idx - 1);
+          } else if (oldIndex > newIndex && idx >= newIndex && idx < oldIndex) {
+            parts[0] = String(idx + 1);
+          } else {
+            return pp;
+          }
+          return parentPrefix + parts.join(',');
+        }
+
+        AppState.generalMarks.forEach(m => { if (m.parentPath != null) m.parentPath = adjust(m.parentPath); });
+        AppState.sounds.forEach(s => { if (s.parentPath != null) s.parentPath = adjust(s.parentPath); });
       },
 
       /*
@@ -6566,6 +6660,7 @@
               });
 
               Utils.deleteNodeByPath(path);
+              Utils.adjustParentPathsAfterDelete(path);
               this.populateNodeSelects();
               MarkSystem.rebuildMarks();
               CanvasManager.render();
@@ -9435,6 +9530,7 @@
 
           const [removed] = parentArray.splice(currentIndex, 1);
           parentArray.splice(newIndex, 0, removed);
+          Utils.adjustParentPathsAfterReorder(draggedParentPath, currentIndex, newIndex);
           MarkSystem.rebuildMarks();
           CanvasManager.render();
           EditModeController.populateNodeSelects();
